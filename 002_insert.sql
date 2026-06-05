@@ -39,10 +39,7 @@ INSERT INTO age_ratings (range) VALUES
 ON CONFLICT (range) DO NOTHING;
 
 
--- ==========================================
--- Добавление тестового фильма (Movie)
--- Категория: 'Көркем фильм', Возраст: '12-14 жас'
--- ==========================================
+
 INSERT INTO movies (
     title, 
     description, 
@@ -66,10 +63,6 @@ INSERT INTO movies (
 );
 
 
--- ==========================================
--- Добавление тестового сериала (Series)
--- Категория: 'Ситком', Возраст: '14-16 жас'
--- ==========================================
 INSERT INTO series (
     title, 
     description, 
@@ -90,16 +83,12 @@ INSERT INTO series (
     (SELECT id FROM age_ratings WHERE range = '14-16 жас' LIMIT 1)
 );
 
--- ==========================================
--- (Бонус) Привязка жанров к фильму и сериалу
--- ==========================================
--- Привязываем жанр 'Ғылыми фантастика және фэнтези' к нашему фильму
+
 INSERT INTO movie_genres (movie_id, genre_id) VALUES (
     (SELECT id FROM movies WHERE title = 'Ғарышқа саяхат' LIMIT 1),
     (SELECT id FROM genres WHERE name = 'Ғылыми фантастика және фэнтези' LIMIT 1)
 );
 
--- Привязываем жанры 'Комедиялар' и 'Отбасымен көретіндер' к нашему сериалу
 INSERT INTO series_genres (series_id, genre_id) VALUES 
 (
     (SELECT id FROM series WHERE title = 'Ауылдастар' LIMIT 1),
@@ -112,4 +101,4 @@ INSERT INTO series_genres (series_id, genre_id) VALUES
 
 UPDATE users 
 SET role_id = (SELECT id FROM roles WHERE name = 'Администратор') 
-WHERE id = 5;
+WHERE id = 1;
