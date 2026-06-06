@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Ozinse API
   version: 1.0.0
-  description: Документация API для проекта Ozinse (Кинотеатр).
+  description: Полная документация API для проекта Ozinse.
 servers:
   - url: http://localhost:8080/api/v1
     description: Локальный сервер
@@ -17,15 +17,19 @@ components:
 
 tags:
   - name: Auth
-    description: Авторизация и регистрация
+    description: Авторизация и безопасность
   - name: Public
-    description: Публичные данные (Категории, Жанры, Проекты)
+    description: Публичные данные (Проекты, Категории, Жанры)
   - name: Profile
-    description: Профиль пользователя
+    description: Управление профилем пользователя
   - name: Favorites
-    description: Избранные фильмы и сериалы
-  - name: Admin
-    description: Панель администратора
+    description: Избранный контент
+  - name: Admin (References)
+    description: Управление справочниками (Категории, Жанры, Рейтинги)
+  - name: Admin (Projects)
+    description: Управление контентом (Проекты, Сезоны, Эпизоды)
+  - name: Admin (Users)
+    description: Управление пользователями и ролями
 
 paths:
   # ================= AUTH =================
@@ -42,7 +46,7 @@ paths:
               properties:
                 email: { type: string, example: "user@ozinse.com" }
                 password: { type: string, example: "secret123" }
-                repeat_password: { type: string, example: "secret123" }
+                full_name: { type: string, example: "Азамат" }
       responses:
         '200': { description: "Успешная регистрация" }
 
@@ -60,21 +64,50 @@ paths:
                 email: { type: string, example: "user@ozinse.com" }
                 password: { type: string, example: "secret123" }
       responses:
-        '200': 
-          description: "Успешный вход, возвращает токены"
+        '200': { description: "Возвращает access_token и refresh_token" }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Обновление access токена
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200': { description: "Новые токены" }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Сброс пароля
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+      responses:
+        '200': { description: "Инструкция отправлена" }
 
   # ================= PUBLIC PROJECTS =================
   /projects:
     get:
       tags: [Public]
-      summary: Получить список всех проектов (фильмы и сериалы)
+      summary: Получить список всех проектов
       responses:
         '200': { description: "Список проектов" }
 
   /projects/featured:
     get:
       tags: [Public]
-      summary: Получить рекомендованные проекты (для главной страницы)
+      summary: Получить рекомендованные проекты (главная)
       responses:
         '200': { description: "Список рекомендованных" }
 
@@ -90,44 +123,94 @@ paths:
       responses:
         '200': { description: "Детали проекта" }
 
-  # ================= REFERENCES =================
+  /projects/{id}/seasons:
+    get:
+      tags: [Public]
+      summary: Получить список сезонов проекта
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Список сезонов и эпизодов" }
+
+  # ================= REFERENCES (PUBLIC) =================
   /categories:
     get:
       tags: [Public]
       summary: Получить все категории
       responses:
-        '200': { description: "Список категорий" }
+        '200': { description: "Список" }
 
   /genres:
     get:
       tags: [Public]
       summary: Получить все жанры
       responses:
-        '200': { description: "Список жанров" }
+        '200': { description: "Список" }
 
-  # ================= PROFILE (SECURE) =================
+  /age-ratings:
+    get:
+      tags: [Public]
+      summary: Получить все возрастные рейтинги
+      responses:
+        '200': { description: "Список" }
+
+  # ================= PROFILE =================
   /profile/me:
     get:
       tags: [Profile]
-      summary: Получить данные текущего пользователя
+      summary: Получить данные пользователя
       security: [{ BearerAuth: [] }]
       responses:
-        '200': { description: "Данные пользователя" }
-        '401': { description: "Неавторизован" }
+        '200': { description: "Данные профиля" }
+    put:
+      tags: [Profile]
+      summary: Обновить данные профиля
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name: { type: string }
+                avatar_url: { type: string }
+      responses:
+        '200': { description: "Обновлено" }
 
-  # ================= FAVORITES (SECURE) =================
+  /profile/password:
+    put:
+      tags: [Profile]
+      summary: Изменить пароль
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password: { type: string }
+                new_password: { type: string }
+      responses:
+        '200': { description: "Пароль изменен" }
+
+  # ================= FAVORITES =================
   /favorites:
     get:
       tags: [Favorites]
       summary: Получить список избранного
       security: [{ BearerAuth: [] }]
       responses:
-        '200': { description: "Список избранных проектов" }
+        '200': { description: "Список избранных" }
 
   /favorites/{project_id}:
     post:
       tags: [Favorites]
-      summary: Добавить проект в избранное
+      summary: Добавить в избранное
       security: [{ BearerAuth: [] }]
       parameters:
         - in: path
@@ -135,10 +218,10 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: "Добавлено успешно" }
+        '200': { description: "Добавлено" }
     delete:
       tags: [Favorites]
-      summary: Удалить проект из избранного
+      summary: Удалить из избранного
       security: [{ BearerAuth: [] }]
       parameters:
         - in: path
@@ -146,13 +229,13 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: "Удалено успешно" }
+        '200': { description: "Удалено" }
 
-  # ================= ADMIN (SECURE + ADMIN ROLE) =================
+  # ================= ADMIN: UPLOAD =================
   /admin/upload:
     post:
-      tags: [Admin]
-      summary: Загрузка файла (картинки/видео)
+      tags: [Admin (Projects)]
+      summary: Загрузка файла
       security: [{ BearerAuth: [] }]
       requestBody:
         required: true
@@ -165,11 +248,12 @@ paths:
                   type: string
                   format: binary
       responses:
-        '200': { description: "Файл загружен, возвращает URL" }
+        '200': { description: "URL файла" }
 
+  # ================= ADMIN: CATEGORIES =================
   /admin/categories:
     post:
-      tags: [Admin]
+      tags: [Admin (References)]
       summary: Создать категорию
       security: [{ BearerAuth: [] }]
       requestBody:
@@ -179,14 +263,47 @@ paths:
             schema:
               type: object
               properties:
-                name: { type: string, example: "Детектив" }
+                name: { type: string }
       responses:
         '200': { description: "Создано" }
 
-  /admin/projects:
+  /admin/categories/{id}:
+    put:
+      tags: [Admin (References)]
+      summary: Обновить категорию
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: "Обновлено" }
+    delete:
+      tags: [Admin (References)]
+      summary: Удалить категорию
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Удалено" }
+
+  # ================= ADMIN: GENRES =================
+  /admin/genres:
     post:
-      tags: [Admin]
-      summary: Создать новый проект (фильм или сериал)
+      tags: [Admin (References)]
+      summary: Создать жанр
       security: [{ BearerAuth: [] }]
       requestBody:
         required: true
@@ -195,10 +312,266 @@ paths:
             schema:
               type: object
               properties:
-                type: { type: string, example: "movie" }
-                title: { type: string, example: "Жаңа фильм" }
-                description: { type: string, example: "Сипаттама..." }
-                category_id: { type: integer, example: 1 }
-                age_rating_id: { type: integer, example: 1 }
+                name: { type: string }
+      responses:
+        '200': { description: "Создано" }
+
+  /admin/genres/{id}:
+    put:
+      tags: [Admin (References)]
+      summary: Обновить жанр
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: "Обновлено" }
+    delete:
+      tags: [Admin (References)]
+      summary: Удалить жанр
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Удалено" }
+
+  # ================= ADMIN: AGE RATINGS =================
+  /admin/age-ratings:
+    post:
+      tags: [Admin (References)]
+      summary: Создать возрастной рейтинг
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, example: "18+" }
+      responses:
+        '200': { description: "Создано" }
+
+  /admin/age-ratings/{id}:
+    put:
+      tags: [Admin (References)]
+      summary: Обновить возрастной рейтинг
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Обновлено" }
+    delete:
+      tags: [Admin (References)]
+      summary: Удалить возрастной рейтинг
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Удалено" }
+
+  # ================= ADMIN: USERS & ROLES =================
+  /admin/users:
+    get:
+      tags: [Admin (Users)]
+      summary: Получить список пользователей
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: "Список" }
+
+  /admin/users/{user_id}/assign-role:
+    post:
+      tags: [Admin (Users)]
+      summary: Назначить роль пользователю
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role_id: { type: integer }
+      responses:
+        '200': { description: "Роль назначена" }
+
+  /admin/roles:
+    get:
+      tags: [Admin (Users)]
+      summary: Получить список ролей
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: "Список ролей" }
+    post:
+      tags: [Admin (Users)]
+      summary: Создать роль
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, example: "MODERATOR" }
+      responses:
+        '200': { description: "Роль создана" }
+
+  /admin/roles/{id}:
+    put:
+      tags: [Admin (Users)]
+      summary: Обновить роль
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Обновлено" }
+    delete:
+      tags: [Admin (Users)]
+      summary: Удалить роль
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Удалено" }
+
+  # ================= ADMIN: PROJECTS =================
+  /admin/projects:
+    get:
+      tags: [Admin (Projects)]
+      summary: Получить все проекты (для админки)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: "Список проектов" }
+    post:
+      tags: [Admin (Projects)]
+      summary: Создать проект
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                category_id: { type: integer }
       responses:
         '200': { description: "Проект создан" }
+
+  /admin/projects/{id}:
+    put:
+      tags: [Admin (Projects)]
+      summary: Обновить проект
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Обновлено" }
+    delete:
+      tags: [Admin (Projects)]
+      summary: Удалить проект
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Удалено" }
+
+  /admin/projects/featured-order:
+    put:
+      tags: [Admin (Projects)]
+      summary: Обновить порядок избранных проектов
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_ids: 
+                  type: array
+                  items: { type: integer }
+      responses:
+        '200': { description: "Порядок обновлен" }
+
+  /admin/projects/{id}/seasons:
+    post:
+      tags: [Admin (Projects)]
+      summary: Создать сезон для проекта
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                season_number: { type: integer }
+                title: { type: string }
+      responses:
+        '200': { description: "Сезон создан" }
+
+  /admin/seasons/{season_id}/episodes:
+    post:
+      tags: [Admin (Projects)]
+      summary: Создать эпизод для сезона
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: season_id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                episode_number: { type: integer }
+                title: { type: string }
+                video_url: { type: string }
+      responses:
+        '200': { description: "Эпизод создан" }
