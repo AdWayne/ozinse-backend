@@ -1,0 +1,204 @@
+openapi: 3.0.0
+info:
+  title: Ozinse API
+  version: 1.0.0
+  description: Документация API для проекта Ozinse (Кинотеатр).
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Локальный сервер
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Введите ваш JWT токен
+
+tags:
+  - name: Auth
+    description: Авторизация и регистрация
+  - name: Public
+    description: Публичные данные (Категории, Жанры, Проекты)
+  - name: Profile
+    description: Профиль пользователя
+  - name: Favorites
+    description: Избранные фильмы и сериалы
+  - name: Admin
+    description: Панель администратора
+
+paths:
+  # ================= AUTH =================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Регистрация нового пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, example: "user@ozinse.com" }
+                password: { type: string, example: "secret123" }
+                repeat_password: { type: string, example: "secret123" }
+      responses:
+        '200': { description: "Успешная регистрация" }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Вход в систему
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, example: "user@ozinse.com" }
+                password: { type: string, example: "secret123" }
+      responses:
+        '200': 
+          description: "Успешный вход, возвращает токены"
+
+  # ================= PUBLIC PROJECTS =================
+  /projects:
+    get:
+      tags: [Public]
+      summary: Получить список всех проектов (фильмы и сериалы)
+      responses:
+        '200': { description: "Список проектов" }
+
+  /projects/featured:
+    get:
+      tags: [Public]
+      summary: Получить рекомендованные проекты (для главной страницы)
+      responses:
+        '200': { description: "Список рекомендованных" }
+
+  /projects/{id}:
+    get:
+      tags: [Public]
+      summary: Получить информацию о проекте
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Детали проекта" }
+
+  # ================= REFERENCES =================
+  /categories:
+    get:
+      tags: [Public]
+      summary: Получить все категории
+      responses:
+        '200': { description: "Список категорий" }
+
+  /genres:
+    get:
+      tags: [Public]
+      summary: Получить все жанры
+      responses:
+        '200': { description: "Список жанров" }
+
+  # ================= PROFILE (SECURE) =================
+  /profile/me:
+    get:
+      tags: [Profile]
+      summary: Получить данные текущего пользователя
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: "Данные пользователя" }
+        '401': { description: "Неавторизован" }
+
+  # ================= FAVORITES (SECURE) =================
+  /favorites:
+    get:
+      tags: [Favorites]
+      summary: Получить список избранного
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: "Список избранных проектов" }
+
+  /favorites/{project_id}:
+    post:
+      tags: [Favorites]
+      summary: Добавить проект в избранное
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Добавлено успешно" }
+    delete:
+      tags: [Favorites]
+      summary: Удалить проект из избранного
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: project_id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: "Удалено успешно" }
+
+  # ================= ADMIN (SECURE + ADMIN ROLE) =================
+  /admin/upload:
+    post:
+      tags: [Admin]
+      summary: Загрузка файла (картинки/видео)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200': { description: "Файл загружен, возвращает URL" }
+
+  /admin/categories:
+    post:
+      tags: [Admin]
+      summary: Создать категорию
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, example: "Детектив" }
+      responses:
+        '200': { description: "Создано" }
+
+  /admin/projects:
+    post:
+      tags: [Admin]
+      summary: Создать новый проект (фильм или сериал)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string, example: "movie" }
+                title: { type: string, example: "Жаңа фильм" }
+                description: { type: string, example: "Сипаттама..." }
+                category_id: { type: integer, example: 1 }
+                age_rating_id: { type: integer, example: 1 }
+      responses:
+        '200': { description: "Проект создан" }
