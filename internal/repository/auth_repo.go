@@ -28,7 +28,6 @@ func NewAuthRepository(db *sql.DB) AuthRepository {
 }
 
 func (r *authRepository) CreateUser(ctx context.Context, email, passwordHash, fullName string) error {
-	// Присваиваем дефолтную роль 'Пользователь' (в твоем сиде это id=2 или ищем по имени)
 	query := `
 		INSERT INTO users (email, password_hash, full_name, role_id) 
 		VALUES ($1, $2, $3, (SELECT id FROM roles WHERE name = 'Пользователь' LIMIT 1));`

@@ -1,8 +1,15 @@
--- Базовые роли для системы (взято из макета админки)
 INSERT INTO roles (name, permissions) VALUES
 ('Администратор', '{"all": true}'),
 ('Пользователь', '{"all": false}')
 ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO users (email, password_hash, full_name, role_id) 
+VALUES (
+    'admin@ozinse.com', 
+    '$2b$12$KZZjyWFPQv5JWo0Uj0RzUe.9Nf0IYK/7cEa8Abn2U6y/QqCqaz3dq', --"admin123"
+    'Admin User', 
+    (SELECT id FROM roles WHERE name = 'Администратор')
+);
 
 -- Санаттар (Категории)
 INSERT INTO categories (name) VALUES
@@ -98,7 +105,3 @@ INSERT INTO series_genres (series_id, genre_id) VALUES
     (SELECT id FROM series WHERE title = 'Ауылдастар' LIMIT 1),
     (SELECT id FROM genres WHERE name = 'Отбасымен көретіндер' LIMIT 1)
 );
-
-UPDATE users 
-SET role_id = (SELECT id FROM roles WHERE name = 'Администратор') 
-WHERE id = 1;

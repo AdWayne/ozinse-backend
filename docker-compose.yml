@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ozinse_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ozinse_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./002_insert.sql:/docker-entrypoint-initdb.d/002_insert.sql
+
+  app:
+    build: .
+    container_name: ozinse_api
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - PORT=8080
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_NAME=ozinse_db
+      - JWT_SECRET=super_secret_key
+      - REFRESH_SECRET=super_secret_refresh_key
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/root/uploads
+
+volumes:
+  pgdata:
